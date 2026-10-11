@@ -74,6 +74,17 @@ export function PlayScreen() {
         onRemovePlayer={removePlayer}
       />
 
+      <div className="actions">
+        <HoldButton
+          className="secondary primary-wide"
+          onConfirm={endTurn}
+          title="Hold to confirm"
+          aria-label={`Hold to end turn and record ${currentScore}`}
+        >
+          End turn · {currentScore}
+        </HoldButton>
+      </div>
+
       <div className="actions actions-centered">
         <button type="button" className="secondary" onClick={undoShut} disabled={!canUndo}>
           Undo
@@ -84,14 +95,6 @@ export function PlayScreen() {
         <button type="button" className="secondary" onClick={skipTurn} disabled={!canSkip}>
           Skip (come back later)
         </button>
-        <HoldButton
-          className="secondary"
-          onConfirm={endTurn}
-          title="Hold to confirm"
-          aria-label={`Hold to end turn and record ${currentScore}`}
-        >
-          End turn · {currentScore}
-        </HoldButton>
       </div>
 
       <button
