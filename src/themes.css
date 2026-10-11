@@ -21,8 +21,12 @@
   --danger: #c45c4a;
   --success: #6b9e4a;
   --board-rail: #7a5230;
+  --felt: #228B4A;
+  --felt-deep: #0f5c32;
+  --felt-hi: rgba(200, 255, 210, 0.14);
   --shadow: rgba(0, 0, 0, 0.45);
   --font-display: 'Fraunces', Georgia, serif;
+  --font-tile: 'Cinzel', 'Times New Roman', serif;
   --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
 }
 
@@ -48,8 +52,12 @@
   --danger: #f87171;
   --success: #4ade80;
   --board-rail: #475569;
+  --felt: #1e3a4c;
+  --felt-deep: #0f2433;
+  --felt-hi: rgba(125, 211, 252, 0.08);
   --shadow: rgba(0, 0, 0, 0.5);
   --font-display: 'Space Grotesk', 'Segoe UI', sans-serif;
+  --font-tile: 'Cinzel', 'Times New Roman', serif;
   --font-body: 'Space Grotesk', 'Segoe UI', sans-serif;
 }
 
@@ -75,8 +83,12 @@
   --danger: #ff4d6d;
   --success: #80ed99;
   --board-rail: #9b2226;
+  --felt: #5a1a6e;
+  --felt-deep: #2d0a40;
+  --felt-hi: rgba(255, 143, 171, 0.1);
   --shadow: rgba(0, 0, 0, 0.4);
   --font-display: 'Baloo 2', 'Comic Sans MS', cursive;
+  --font-tile: 'Cinzel', 'Times New Roman', serif;
   --font-body: 'Nunito', 'Segoe UI', sans-serif;
 }
 
@@ -102,7 +114,11 @@
   --danger: #e63946;
   --success: #2a9d8f;
   --board-rail: #0077b6;
+  --felt: #025a6e;
+  --felt-deep: #013845;
+  --felt-hi: rgba(144, 224, 239, 0.1);
   --shadow: rgba(0, 0, 0, 0.35);
   --font-display: 'Libre Baskerville', Georgia, serif;
+  --font-tile: 'Cinzel', 'Times New Roman', serif;
   --font-body: 'Karla', 'Segoe UI', sans-serif;
 }
