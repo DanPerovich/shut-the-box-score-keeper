@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { newPlayerId } from '../game/rules'
 import { loadLastSetup } from '../game/storage'
+import { forceRefreshApp } from '../pwa'
 import {
   DEFAULT_PLAYER_NAMES,
   DEFAULT_SETTINGS,
@@ -35,6 +36,7 @@ export function SetupScreen() {
   const [settings, setSettings] = useState<GameSettings>(
     () => loadLastSetup()?.settings ?? { ...DEFAULT_SETTINGS },
   )
+  const [refreshing, setRefreshing] = useState(false)
 
   const canStart = useMemo(
     () =>
@@ -212,6 +214,22 @@ export function SetupScreen() {
       >
         Start game
       </button>
+
+      <button
+        type="button"
+        className="secondary"
+        style={{ width: '100%', marginTop: '0.75rem' }}
+        disabled={refreshing}
+        onClick={() => {
+          setRefreshing(true)
+          void forceRefreshApp()
+        }}
+      >
+        {refreshing ? 'Refreshing…' : 'Refresh app for updates'}
+      </button>
+      <p className="hint" style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+        Clears the cached app and reloads the latest version. Saved games stay intact.
+      </p>
     </div>
   )
 }
