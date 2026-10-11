@@ -89,11 +89,24 @@ export function PlayScreen() {
         <button type="button" className="secondary" onClick={undoShut} disabled={!canUndo}>
           Undo
         </button>
-        <button type="button" className="secondary" onClick={resetTurnBoard}>
-          Reset board
+        <button
+          type="button"
+          className="secondary"
+          onClick={resetTurnBoard}
+          title="Reset board"
+          aria-label="Reset board"
+        >
+          Reset
         </button>
-        <button type="button" className="secondary" onClick={skipTurn} disabled={!canSkip}>
-          Skip (come back later)
+        <button
+          type="button"
+          className="secondary"
+          onClick={skipTurn}
+          disabled={!canSkip}
+          title="Skip — come back later"
+          aria-label="Skip turn and come back later"
+        >
+          Skip
         </button>
       </div>
 
