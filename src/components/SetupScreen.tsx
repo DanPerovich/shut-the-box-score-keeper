@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { newPlayerId } from '../game/rules'
 import { loadLastSetup } from '../game/storage'
 import { forceRefreshApp } from '../pwa'
@@ -28,6 +28,17 @@ function playersFromNames(names: string[] | undefined): Player[] {
   return list.map((name) => ({ id: newPlayerId(), name }))
 }
 
+function reorderById(list: Player[], fromId: string, toId: string): Player[] {
+  if (fromId === toId) return list
+  const from = list.findIndex((p) => p.id === fromId)
+  const to = list.findIndex((p) => p.id === toId)
+  if (from < 0 || to < 0) return list
+  const next = [...list]
+  const [item] = next.splice(from, 1)
+  next.splice(to, 0, item)
+  return next
+}
+
 export function SetupScreen() {
   const { startGame, hasResume, resumeGame, dismissResume } = useGame()
   const [players, setPlayers] = useState<Player[]>(() =>
@@ -37,6 +48,10 @@ export function SetupScreen() {
     () => loadLastSetup()?.settings ?? { ...DEFAULT_SETTINGS },
   )
   const [refreshing, setRefreshing] = useState(false)
+  const [draggingId, setDraggingId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
+  const dragIdRef = useRef<string | null>(null)
+  const listRef = useRef<HTMLDivElement | null>(null)
 
   const canStart = useMemo(
     () =>
@@ -53,6 +68,54 @@ export function SetupScreen() {
     key: K,
     value: GameSettings[K],
   ) => setSettings((s) => ({ ...s, [key]: value }))
+
+  const playerIdAtPoint = (clientY: number): string | null => {
+    const root = listRef.current
+    if (!root) return null
+    const rows = root.querySelectorAll<HTMLElement>('[data-player-id]')
+    for (const row of rows) {
+      const rect = row.getBoundingClientRect()
+      if (clientY >= rect.top && clientY <= rect.bottom) {
+        return row.dataset.playerId ?? null
+      }
+    }
+    return null
+  }
+
+  const onHandlePointerDown = (
+    e: ReactPointerEvent<HTMLButtonElement>,
+    playerId: string,
+  ) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragIdRef.current = playerId
+    setDraggingId(playerId)
+    setOverId(playerId)
+  }
+
+  const onHandlePointerMove = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    const fromId = dragIdRef.current
+    if (!fromId) return
+    const toId = playerIdAtPoint(e.clientY)
+    if (!toId) return
+    setOverId(toId)
+    if (toId !== fromId) {
+      setPlayers((list) => reorderById(list, fromId, toId))
+    }
+  }
+
+  const onHandlePointerUp = (e: ReactPointerEvent<HTMLButtonElement>) => {
+    if (!dragIdRef.current) return
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId)
+    } catch {
+      // already released
+    }
+    dragIdRef.current = null
+    setDraggingId(null)
+    setOverId(null)
+  }
 
   return (
     <div className="app-shell">
@@ -76,35 +139,59 @@ export function SetupScreen() {
       )}
 
       <section className="panel">
-        <div className="row spread" style={{ marginBottom: '0.75rem' }}>
+        <div className="row spread" style={{ marginBottom: '0.35rem' }}>
           <h2 style={{ fontSize: '1.15rem' }}>Players</h2>
           <span className="hint">{players.length} / 8</span>
         </div>
-        {players.map((p, i) => (
-          <div className="player-row" key={p.id}>
-            <input
-              value={p.name}
-              aria-label={`Player ${i + 1} name`}
-              onChange={(e) =>
-                setPlayers((list) =>
-                  list.map((x) =>
-                    x.id === p.id ? { ...x, name: e.target.value } : x,
-                  ),
-                )
-              }
-            />
-            <button
-              type="button"
-              className="secondary"
-              disabled={players.length <= 2}
-              onClick={() =>
-                setPlayers((list) => list.filter((x) => x.id !== p.id))
-              }
+        <p className="hint" style={{ marginBottom: '0.75rem' }}>
+          Drag to set play order · top player goes first
+        </p>
+        <div ref={listRef}>
+          {players.map((p, i) => (
+            <div
+              className={`player-row${draggingId === p.id ? ' is-dragging' : ''}${
+                overId === p.id && draggingId && draggingId !== p.id
+                  ? ' is-drag-over'
+                  : ''
+              }`}
+              key={p.id}
+              data-player-id={p.id}
             >
-              Remove
-            </button>
-          </div>
-        ))}
+              <button
+                type="button"
+                className="player-drag-handle"
+                aria-label={`Drag to reorder player ${i + 1}`}
+                onPointerDown={(e) => onHandlePointerDown(e, p.id)}
+                onPointerMove={onHandlePointerMove}
+                onPointerUp={onHandlePointerUp}
+                onPointerCancel={onHandlePointerUp}
+              >
+                ⠿
+              </button>
+              <input
+                value={p.name}
+                aria-label={`Player ${i + 1} name`}
+                onChange={(e) =>
+                  setPlayers((list) =>
+                    list.map((x) =>
+                      x.id === p.id ? { ...x, name: e.target.value } : x,
+                    ),
+                  )
+                }
+              />
+              <button
+                type="button"
+                className="secondary"
+                disabled={players.length <= 2}
+                onClick={() =>
+                  setPlayers((list) => list.filter((x) => x.id !== p.id))
+                }
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
         <button
           type="button"
           className="secondary"

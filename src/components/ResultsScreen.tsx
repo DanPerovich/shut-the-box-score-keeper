@@ -17,15 +17,23 @@ export function ResultsScreen() {
   const isTie = tied.length > 1
   const shutTheBox = winnerTotal === 0
 
-  // Double rAF: iOS WebKit often skips CSS animations applied on first paint.
+  // Defer the celebrating class until after paint. Double rAF alone is flaky on
+  // iOS WebKit after a screen transition, so also fall back to a short timeout.
   useEffect(() => {
+    let cancelled = false
     let inner = 0
+    const start = () => {
+      if (!cancelled) setMotionReady(true)
+    }
     const outer = requestAnimationFrame(() => {
-      inner = requestAnimationFrame(() => setMotionReady(true))
+      inner = requestAnimationFrame(start)
     })
+    const timer = window.setTimeout(start, 50)
     return () => {
+      cancelled = true
       cancelAnimationFrame(outer)
       cancelAnimationFrame(inner)
+      window.clearTimeout(timer)
     }
   }, [])
 
@@ -52,31 +60,35 @@ export function ResultsScreen() {
       className={`app-shell results-screen${motionReady ? ' is-celebrating' : ''}`}
     >
       <header className="winner-hero" aria-live="polite">
-        <div className="winner-burst" aria-hidden="true">
-          {confetti.map((c) => {
-            const slotStyle = {
-              left: c.left,
-              animationDelay: c.delay,
-              animationDuration: c.duration,
-            } as CSSProperties
-            const pieceStyle = {
-              width: c.size,
-              height: c.size,
-              transform: `rotate(${c.rotate})`,
-            } as CSSProperties
-            return (
-              <span key={c.id} className="confetti-slot" style={slotStyle}>
-                <span
-                  className={`confetti confetti-${c.hue}`}
-                  style={pieceStyle}
-                />
-              </span>
-            )
-          })}
+        {/* Mount burst only once celebrating so iOS applies the full animation shorthand on insert */}
+        {motionReady && (
+          <div className="winner-burst" aria-hidden="true">
+            {confetti.map((c) => {
+              // Full animation shorthand inline — Safari drops animations when
+              // delay/duration longhands are set before animation-name.
+              const slotStyle = {
+                left: c.left,
+                animation: `confetti-fall ${c.duration} cubic-bezier(0.22, 0.7, 0.3, 1) ${c.delay} forwards`,
+              } as CSSProperties
+              const pieceStyle = {
+                width: c.size,
+                height: c.size,
+                transform: `rotate(${c.rotate})`,
+              } as CSSProperties
+              return (
+                <span key={c.id} className="confetti-slot" style={slotStyle}>
+                  <span
+                    className={`confetti confetti-${c.hue}`}
+                    style={pieceStyle}
+                  />
+                </span>
+              )
+            })}
 
-          <span className="burst-ring burst-ring-a" />
-          <span className="burst-ring burst-ring-b" />
-        </div>
+            <span className="burst-ring burst-ring-a" />
+            <span className="burst-ring burst-ring-b" />
+          </div>
+        )}
 
         <p className="winner-eyebrow">
           {shutTheBox ? 'Shut the Box!' : isTie ? 'Dead heat' : 'Champion'}
@@ -103,11 +115,16 @@ export function ResultsScreen() {
         <ol className="standings-list">
           {ranked.map((p, i) => {
             const isWinner = totals[p.id] === winnerTotal
+            const rowStyle = motionReady
+              ? ({
+                  animation: `standings-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) ${0.55 + i * 0.1}s backwards`,
+                } as CSSProperties)
+              : undefined
             return (
               <li
                 key={p.id}
                 className={`standings-row${isWinner ? ' is-winner' : ''}`}
-                style={{ animationDelay: `${0.55 + i * 0.1}s` }}
+                style={rowStyle}
               >
                 <span className="standings-rank">#{i + 1}</span>
                 <span className="standings-name">{p.name}</span>
@@ -118,7 +135,16 @@ export function ResultsScreen() {
         </ol>
       </section>
 
-      <section className="panel scoreboard" style={{ animationDelay: '1s' }}>
+      <section
+        className="panel scoreboard"
+        style={
+          motionReady
+            ? ({
+                animation: 'fade-up 0.55s ease-out 1s backwards',
+              } as CSSProperties)
+            : undefined
+        }
+      >
         <table>
           <thead>
             <tr>

@@ -113,6 +113,30 @@ export function orderStartingWith(priorOrder: string[], starter: string): string
   return [...priorOrder.slice(idx), ...priorOrder.slice(0, idx)]
 }
 
+/**
+ * Play order for the next game after a finished one: same rule as rounds —
+ * lowest total goes first; ties keep prior order.
+ */
+export function nextGamePlayerOrder(
+  players: Player[],
+  scores: Record<string, number | null>[],
+  lastOrder: string[],
+): Player[] {
+  const byId = new Map(players.map((p) => [p.id, p]))
+  const order = lastOrder.filter((id) => byId.has(id))
+  for (const p of players) {
+    if (!order.includes(p.id)) order.push(p.id)
+  }
+  if (order.length === 0) return [...players]
+
+  const totals = playerTotals(players, scores)
+  const asScores: Record<string, number | null> = {}
+  for (const id of order) asScores[id] = totals[id] ?? 0
+
+  const starter = nextRoundStarter(asScores, order)
+  return orderStartingWith(order, starter).map((id) => byId.get(id)!)
+}
+
 export function emptyRoundScores(players: Player[]): Record<string, number | null> {
   const row: Record<string, number | null> = {}
   for (const p of players) row[p.id] = null

@@ -19,6 +19,7 @@ import {
   createEmptyBoard,
   diceCount,
   emptyRoundScores,
+  nextGamePlayerOrder,
   nextRoundStarter,
   openTiles,
   orderStartingWith,
@@ -108,7 +109,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const newGame = useCallback(() => {
     setState((prev) => {
       if (prev.screen !== 'setup' && prev.players.length >= 2) {
-        saveLastSetup(prev.players, prev.settings)
+        // After a finished game, carry next-starter order into the next setup
+        // (same lowest-score rule used between rounds).
+        const playersForSetup =
+          prev.screen === 'results'
+            ? nextGamePlayerOrder(
+                prev.players,
+                prev.scores,
+                prev.orders[prev.orders.length - 1] ??
+                  prev.players.map((p) => p.id),
+              )
+            : prev.players
+        saveLastSetup(playersForSetup, prev.settings)
       }
       return freshSetupState()
     })

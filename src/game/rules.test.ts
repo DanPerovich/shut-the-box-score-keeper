@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   diceCount,
+  nextGamePlayerOrder,
   nextRoundStarter,
   orderStartingWith,
   rollFromDice,
@@ -60,6 +61,36 @@ describe('nextRoundStarter', () => {
 describe('orderStartingWith', () => {
   it('rotates order', () => {
     expect(orderStartingWith(['a', 'b', 'c'], 'b')).toEqual(['b', 'c', 'a'])
+  })
+})
+
+describe('nextGamePlayerOrder', () => {
+  const players = [
+    { id: 'a', name: 'Ann' },
+    { id: 'b', name: 'Ben' },
+    { id: 'c', name: 'Cam' },
+  ]
+
+  it('puts lowest total first for the next game', () => {
+    const next = nextGamePlayerOrder(
+      players,
+      [{ a: 10, b: 3, c: 8 }],
+      ['a', 'b', 'c'],
+    )
+    expect(next.map((p) => p.id)).toEqual(['b', 'c', 'a'])
+  })
+
+  it('uses totals across rounds and breaks ties by prior order', () => {
+    const next = nextGamePlayerOrder(
+      players,
+      [
+        { a: 5, b: 4, c: 9 },
+        { a: 0, b: 1, c: 2 },
+      ],
+      ['a', 'b', 'c'],
+    )
+    // totals: a=5, b=5, c=11 — tie broken by prior order → a
+    expect(next.map((p) => p.id)).toEqual(['a', 'b', 'c'])
   })
 })
 
