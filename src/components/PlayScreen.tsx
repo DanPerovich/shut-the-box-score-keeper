@@ -1,6 +1,7 @@
 import { useGame } from '../game/GameContext'
 import { Board } from './Board'
 import { DiceInput } from './DiceInput'
+import { HoldButton } from './HoldButton'
 import { Scoreboard } from './Scoreboard'
 
 export function PlayScreen() {
@@ -66,16 +67,6 @@ export function PlayScreen() {
         />
       )}
 
-      <div className="actions">
-        <button
-          type="button"
-          className="primary-wide"
-          onClick={endTurn}
-        >
-          End turn · record {currentScore}
-        </button>
-      </div>
-
       <Scoreboard
         state={state}
         currentPlayerId={currentId}
@@ -93,6 +84,14 @@ export function PlayScreen() {
         <button type="button" className="secondary" onClick={skipTurn} disabled={!canSkip}>
           Skip (come back later)
         </button>
+        <HoldButton
+          className="secondary"
+          onConfirm={endTurn}
+          title="Hold to confirm"
+          aria-label={`Hold to end turn and record ${currentScore}`}
+        >
+          End turn · {currentScore}
+        </HoldButton>
       </div>
 
       <button

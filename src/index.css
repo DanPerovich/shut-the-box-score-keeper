@@ -225,6 +225,27 @@ button.ghost {
   font-size: 1.05rem;
 }
 
+.hold-button {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.hold-button-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: color-mix(in srgb, var(--accent) 42%, transparent);
+  pointer-events: none;
+}
+
+.hold-button-label {
+  position: relative;
+  z-index: 1;
+}
+
 /* Board */
 .board-wrap {
   padding: 0.65rem 0.55rem 0.85rem;
@@ -259,6 +280,11 @@ button.ghost {
   /* Let clicks pass through the flex container so 3D-tilted
      tiles remain the hit targets (preserve-3d can steal events). */
   pointer-events: none;
+}
+
+.board[data-tiles='12'] {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
 }
 
 .tile {
