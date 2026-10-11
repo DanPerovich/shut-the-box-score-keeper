@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { playerTotals } from '../game/rules'
 import { useGame } from '../game/GameContext'
 
@@ -6,6 +6,7 @@ const CONFETTI_COUNT = 28
 
 export function ResultsScreen() {
   const { state, newGame } = useGame()
+  const [motionReady, setMotionReady] = useState(false)
   const totals = playerTotals(state.players, state.scores)
   const ranked = [...state.players].sort(
     (a, b) => totals[a.id] - totals[b.id] || a.name.localeCompare(b.name),
@@ -15,6 +16,18 @@ export function ResultsScreen() {
   const tied = ranked.filter((p) => totals[p.id] === winnerTotal)
   const isTie = tied.length > 1
   const shutTheBox = winnerTotal === 0
+
+  // Double rAF: iOS WebKit often skips CSS animations applied on first paint.
+  useEffect(() => {
+    let inner = 0
+    const outer = requestAnimationFrame(() => {
+      inner = requestAnimationFrame(() => setMotionReady(true))
+    })
+    return () => {
+      cancelAnimationFrame(outer)
+      cancelAnimationFrame(inner)
+    }
+  }, [])
 
   const confetti = useMemo(
     () =>
@@ -35,24 +48,29 @@ export function ResultsScreen() {
     : (winner?.name ?? 'Winner')
 
   return (
-    <div className="app-shell results-screen">
+    <div
+      className={`app-shell results-screen${motionReady ? ' is-celebrating' : ''}`}
+    >
       <header className="winner-hero" aria-live="polite">
         <div className="winner-burst" aria-hidden="true">
           {confetti.map((c) => {
-            const style = {
+            const slotStyle = {
               left: c.left,
               animationDelay: c.delay,
               animationDuration: c.duration,
+            } as CSSProperties
+            const pieceStyle = {
               width: c.size,
               height: c.size,
-              '--spin': c.rotate,
+              transform: `rotate(${c.rotate})`,
             } as CSSProperties
             return (
-              <span
-                key={c.id}
-                className={`confetti confetti-${c.hue}`}
-                style={style}
-              />
+              <span key={c.id} className="confetti-slot" style={slotStyle}>
+                <span
+                  className={`confetti confetti-${c.hue}`}
+                  style={pieceStyle}
+                />
+              </span>
             )
           })}
 
@@ -63,7 +81,9 @@ export function ResultsScreen() {
         <p className="winner-eyebrow">
           {shutTheBox ? 'Shut the Box!' : isTie ? 'Dead heat' : 'Champion'}
         </p>
-        <h1 className="winner-name">{winnerLabel}</h1>
+        <h1 className="winner-name" data-label={winnerLabel}>
+          {winnerLabel}
+        </h1>
         <div className="winner-score-wrap">
           <span className="winner-score-label">
             {isTie ? 'Tied score' : 'Winning score'}
