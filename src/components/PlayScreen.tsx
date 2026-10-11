@@ -74,6 +74,16 @@ export function PlayScreen() {
         >
           End turn · record {currentScore}
         </button>
+      </div>
+
+      <Scoreboard
+        state={state}
+        currentPlayerId={currentId}
+        onEditScore={editScore}
+        onRemovePlayer={removePlayer}
+      />
+
+      <div className="actions actions-centered">
         <button type="button" className="secondary" onClick={undoShut} disabled={!canUndo}>
           Undo
         </button>
@@ -84,13 +94,6 @@ export function PlayScreen() {
           Skip (come back later)
         </button>
       </div>
-
-      <Scoreboard
-        state={state}
-        currentPlayerId={currentId}
-        onEditScore={editScore}
-        onRemovePlayer={removePlayer}
-      />
 
       <button
         type="button"
