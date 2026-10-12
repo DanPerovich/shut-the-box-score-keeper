@@ -1,6 +1,6 @@
 /**
  * Celebration motion via requestAnimationFrame + direct style writes.
- * iOS Chrome (WKWebView) routinely skips CSS animations and stalls WAAPI
+ * iOS Chrome/Safari (WKWebView) routinely skip CSS animations and stall WAAPI
  * composited timelines; mutating opacity/transform each frame always works.
  */
 
@@ -26,9 +26,11 @@ export type TweenOpts = {
   through?: Array<{ at: number; pose: Pose }>
   iterations?: number
   onDone?: () => void
+  /** When true, run even if the OS asks for reduced motion */
+  force?: boolean
 }
 
-function prefersReducedMotion(): boolean {
+export function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
@@ -73,7 +75,6 @@ function mixPose(a: Pose, b: Pose, t: number): Pose {
     out.rotate = lerp(a.rotate ?? 0, b.rotate ?? 0, t)
   }
   if (b.backgroundPosition != null) {
-    // Snap / simple lerp of percentage if both are `% 50%`
     const parse = (s: string | undefined, fallback: number) => {
       if (!s) return fallback
       const m = /^([\d.]+)%/.exec(s)
@@ -110,7 +111,7 @@ export type Running = { cancel: () => void }
 
 /**
  * Animate an element by writing styles each frame.
- * Returns a cancel handle. No-ops when reduced motion is on (applies `to` immediately).
+ * Returns a cancel handle. Skips motion when reduced motion is preferred unless force.
  */
 export function tween(el: Element | null | undefined, opts: TweenOpts): Running {
   if (!(el instanceof HTMLElement)) return { cancel() {} }
@@ -120,7 +121,7 @@ export function tween(el: Element | null | undefined, opts: TweenOpts): Running 
   const iterations = opts.iterations ?? 1
   let raf = 0
   let cancelled = false
-  let start = 0
+  let startAt: number | null = null
   let iteration = 0
 
   const finish = () => {
@@ -128,7 +129,7 @@ export function tween(el: Element | null | undefined, opts: TweenOpts): Running 
     opts.onDone?.()
   }
 
-  if (prefersReducedMotion()) {
+  if (!opts.force && prefersReducedMotion()) {
     finish()
     return { cancel() {} }
   }
@@ -137,13 +138,13 @@ export function tween(el: Element | null | undefined, opts: TweenOpts): Running 
 
   const frame = (now: number) => {
     if (cancelled) return
-    if (!start) start = now + delay
-    const elapsed = now - start
+    if (startAt === null) startAt = now + delay
+    const elapsed = now - startAt
     if (elapsed < 0) {
       raf = requestAnimationFrame(frame)
       return
     }
-    const raw = Math.min(1, elapsed / opts.duration)
+    const raw = Math.min(1, elapsed / Math.max(1, opts.duration))
     const t = ease(raw)
     applyPose(el, poseAt(opts.from, opts.to, t, opts.through))
     if (raw < 1) {
@@ -152,7 +153,7 @@ export function tween(el: Element | null | undefined, opts: TweenOpts): Running 
     }
     iteration += 1
     if (iterations === Infinity || iteration < iterations) {
-      start = now
+      startAt = now
       raf = requestAnimationFrame(frame)
       return
     }
