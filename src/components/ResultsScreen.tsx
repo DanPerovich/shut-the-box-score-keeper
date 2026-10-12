@@ -1,36 +1,15 @@
 import { useLayoutEffect, useMemo, useRef, type CSSProperties } from 'react'
+import {
+  easeOutBack,
+  easeOutCubic,
+  tween,
+  tweenMany,
+  type Running,
+} from '../celebrate'
 import { playerTotals } from '../game/rules'
 import { useGame } from '../game/GameContext'
 
 const CONFETTI_COUNT = 28
-
-function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-/** WAAPI helper — CSS animations are unreliable in iOS Chrome (WKWebView). */
-function animateEl(
-  el: Element | null | undefined,
-  keyframes: Keyframe[],
-  options: KeyframeAnimationOptions,
-): Animation | undefined {
-  if (!el || typeof (el as HTMLElement).animate !== 'function') return
-  try {
-    const anim = (el as HTMLElement).animate(keyframes, {
-      fill: 'both',
-      ...options,
-    })
-    // Slightly off 1.0 boots some iOS WebKit animations off a stuck CA timeline.
-    try {
-      anim.playbackRate = 1.000001
-    } catch {
-      /* ignore */
-    }
-    return anim
-  } catch {
-    return
-  }
-}
 
 export function ResultsScreen() {
   const { state, newGame } = useGame()
@@ -65,189 +44,164 @@ export function ResultsScreen() {
 
   useLayoutEffect(() => {
     const root = rootRef.current
-    if (!root || prefersReducedMotion()) return
+    if (!root) return
 
-    const animations: Animation[] = []
-    const track = (anim: Animation | undefined) => {
-      if (anim) animations.push(anim)
+    const runners: Running[] = []
+    const q = <T extends Element>(sel: string) => root.querySelector<T>(sel)
+
+    runners.push(
+      tween(q('.winner-hero'), {
+        duration: 700,
+        ease: easeOutBack,
+        from: { opacity: 0, y: 16, scale: 0.92 },
+        to: { opacity: 1, y: 0, scale: 1 },
+      }),
+    )
+
+    runners.push(
+      tween(q('.winner-eyebrow'), {
+        duration: 550,
+        delay: 150,
+        ease: easeOutCubic,
+        from: { opacity: 0, y: 8 },
+        to: { opacity: 1, y: 0 },
+      }),
+    )
+
+    runners.push(
+      tween(q('.winner-name'), {
+        duration: 850,
+        delay: 250,
+        ease: easeOutBack,
+        from: { opacity: 0, scale: 0.4, rotate: -4 },
+        through: [
+          { at: 0.55, pose: { opacity: 1, scale: 1.12, rotate: 1.5 } },
+          { at: 0.75, pose: { opacity: 1, scale: 0.96, rotate: -0.5 } },
+        ],
+        to: { opacity: 1, scale: 1, rotate: 0 },
+      }),
+    )
+
+    const shine = q<HTMLElement>('.winner-name-shine')
+    if (shine) {
+      shine.style.opacity = '1'
+      runners.push(
+        tween(shine, {
+          duration: 2400,
+          delay: 1100,
+          ease: (t) => t,
+          iterations: Infinity,
+          from: { backgroundPosition: '0% 50%' },
+          through: [{ at: 0.5, pose: { backgroundPosition: '100% 50%' } }],
+          to: { backgroundPosition: '0% 50%' },
+        }),
+      )
     }
 
-    // Start synchronously after DOM commit — WAAPI is reliable on iOS Chrome
-    // when not deferred behind CSS class toggles / late rAF.
-    track(
-      animateEl(
-        root.querySelector('.winner-hero'),
-        [
-          { opacity: 0, transform: 'translate3d(0, 16px, 0) scale(0.92)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' },
-        ],
-        { duration: 700, easing: 'cubic-bezier(0.16, 1.1, 0.3, 1)' },
-      ),
+    runners.push(
+      tween(q('.winner-score-wrap'), {
+        duration: 700,
+        delay: 450,
+        ease: easeOutBack,
+        from: { opacity: 0, y: 18, scale: 0.7 },
+        to: { opacity: 1, y: 0, scale: 1 },
+      }),
     )
 
-    track(
-      animateEl(
-        root.querySelector('.winner-eyebrow'),
-        [
-          { opacity: 0, transform: 'translate3d(0, 8px, 0)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-        ],
-        { duration: 550, delay: 150, easing: 'ease-out' },
-      ),
+    runners.push(
+      tween(q('.winner-score'), {
+        duration: 1400,
+        delay: 900,
+        ease: (t) => t,
+        iterations: Infinity,
+        from: { scale: 1 },
+        through: [{ at: 0.5, pose: { scale: 1.06 } }],
+        to: { scale: 1 },
+      }),
     )
 
-    track(
-      animateEl(
-        root.querySelector('.winner-name'),
-        [
-          { opacity: 0, transform: 'translate3d(0, 0, 0) scale(0.4) rotate(-4deg)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1.12) rotate(1.5deg)', offset: 0.55 },
-          { opacity: 1, transform: 'translate3d(0, 0, 0) scale(0.96) rotate(-0.5deg)', offset: 0.75 },
-          { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1) rotate(0deg)' },
-        ],
-        { duration: 850, delay: 250, easing: 'cubic-bezier(0.12, 1.25, 0.3, 1)' },
-      ),
+    runners.push(
+      tween(q('.winner-tagline'), {
+        duration: 550,
+        delay: 700,
+        ease: easeOutCubic,
+        from: { opacity: 0, y: 14 },
+        to: { opacity: 1, y: 0 },
+      }),
     )
 
-    track(
-      animateEl(
-        root.querySelector('.winner-name-shine'),
-        [
-          { backgroundPosition: '0% 50%', opacity: 1 },
-          { backgroundPosition: '100% 50%', opacity: 1, offset: 0.5 },
-          { backgroundPosition: '0% 50%', opacity: 1 },
-        ],
-        { duration: 2400, delay: 1100, easing: 'ease-in-out', iterations: Infinity },
-      ),
-    )
-
-    track(
-      animateEl(
-        root.querySelector('.winner-score-wrap'),
-        [
-          { opacity: 0, transform: 'translate3d(0, 18px, 0) scale(0.7)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0) scale(1)' },
-        ],
-        { duration: 700, delay: 450, easing: 'cubic-bezier(0.16, 1.2, 0.3, 1)' },
-      ),
-    )
-
-    track(
-      animateEl(
-        root.querySelector('.winner-score'),
-        [
-          { transform: 'translate3d(0, 0, 0) scale(1)' },
-          { transform: 'translate3d(0, 0, 0) scale(1.06)', offset: 0.5 },
-          { transform: 'translate3d(0, 0, 0) scale(1)' },
-        ],
-        { duration: 1400, delay: 900, easing: 'ease-in-out', iterations: Infinity },
-      ),
-    )
-
-    track(
-      animateEl(
-        root.querySelector('.winner-tagline'),
-        [
-          { opacity: 0, transform: 'translate3d(0, 14px, 0)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-        ],
-        { duration: 550, delay: 700, easing: 'ease-out' },
-      ),
-    )
-
-    track(
-      animateEl(
-        root.querySelector('.standings-panel'),
-        [
-          { opacity: 0, transform: 'translate3d(0, 14px, 0)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-        ],
-        { duration: 550, delay: 500, easing: 'ease-out' },
-      ),
+    runners.push(
+      tween(q('.standings-panel'), {
+        duration: 550,
+        delay: 500,
+        ease: easeOutCubic,
+        from: { opacity: 0, y: 14 },
+        to: { opacity: 1, y: 0 },
+      }),
     )
 
     root.querySelectorAll<HTMLElement>('.standings-row').forEach((row, i) => {
-      track(
-        animateEl(
-          row,
-          [
-            { opacity: 0, transform: 'translate3d(-12px, 0, 0)' },
-            { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-          ],
-          {
-            duration: 450,
-            delay: 550 + i * 100,
-            easing: 'cubic-bezier(0.2, 0.9, 0.3, 1)',
-          },
-        ),
+      runners.push(
+        tween(row, {
+          duration: 450,
+          delay: 550 + i * 100,
+          ease: easeOutCubic,
+          from: { opacity: 0, x: -12 },
+          to: { opacity: 1, x: 0 },
+        }),
       )
     })
 
-    track(
-      animateEl(
-        root.querySelector('.scoreboard'),
-        [
-          { opacity: 0, transform: 'translate3d(0, 14px, 0)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-        ],
-        { duration: 550, delay: 1000, easing: 'ease-out' },
-      ),
+    runners.push(
+      tween(q('.scoreboard'), {
+        duration: 550,
+        delay: 1000,
+        ease: easeOutCubic,
+        from: { opacity: 0, y: 14 },
+        to: { opacity: 1, y: 0 },
+      }),
     )
 
-    track(
-      animateEl(
-        root.querySelector('.results-cta'),
-        [
-          { opacity: 0, transform: 'translate3d(0, 14px, 0)' },
-          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
-        ],
-        { duration: 550, delay: 1150, easing: 'ease-out' },
-      ),
+    runners.push(
+      tween(q('.results-cta'), {
+        duration: 550,
+        delay: 1150,
+        ease: easeOutCubic,
+        from: { opacity: 0, y: 14 },
+        to: { opacity: 1, y: 0 },
+      }),
     )
 
     root.querySelectorAll<HTMLElement>('.burst-ring').forEach((ring, i) => {
-      track(
-        animateEl(
-          ring,
-          [
-            { opacity: 0.9, transform: 'translate3d(-50%, -50%, 0) scale(0.2)' },
-            { opacity: 0.35, transform: 'translate3d(-50%, -50%, 0) scale(4)', offset: 0.7 },
-            { opacity: 0, transform: 'translate3d(-50%, -50%, 0) scale(7.5)' },
-          ],
-          {
-            duration: i === 0 ? 1100 : 1250,
-            delay: i === 0 ? 100 : 280,
-            easing: 'cubic-bezier(0.15, 0.85, 0.3, 1)',
-            fill: 'forwards',
-          },
-        ),
+      runners.push(
+        tween(ring, {
+          duration: i === 0 ? 1100 : 1250,
+          delay: i === 0 ? 100 : 280,
+          ease: easeOutCubic,
+          from: { opacity: 0.9, scale: 0.2, centered: true },
+          through: [{ at: 0.7, pose: { opacity: 0.35, scale: 4, centered: true } }],
+          to: { opacity: 0, scale: 7.5, centered: true },
+        }),
       )
     })
 
     root.querySelectorAll<HTMLElement>('.confetti-slot').forEach((slot, i) => {
       const piece = confetti[i]
       if (!piece) return
-      track(
-        animateEl(
-          slot,
-          [
-            { opacity: 0, transform: 'translate3d(0, -10px, 0) scale(0.6)' },
-            { opacity: 1, transform: 'translate3d(0, 30px, 0) scale(1)', offset: 0.12 },
-            { opacity: 0, transform: 'translate3d(0, 220px, 0) scale(1)' },
-          ],
-          {
-            duration: piece.duration,
-            delay: piece.delay,
-            easing: 'cubic-bezier(0.22, 0.7, 0.3, 1)',
-            fill: 'forwards',
-          },
-        ),
+      runners.push(
+        tween(slot, {
+          duration: piece.duration,
+          delay: piece.delay,
+          ease: easeOutCubic,
+          from: { opacity: 0, y: -10, scale: 0.6 },
+          through: [{ at: 0.12, pose: { opacity: 1, y: 30, scale: 1 } }],
+          to: { opacity: 0, y: 220, scale: 1 },
+        }),
       )
     })
 
-    return () => {
-      for (const anim of animations) anim.cancel()
-    }
+    const all = tweenMany(runners)
+    return () => all.cancel()
   }, [confetti])
 
   return (
