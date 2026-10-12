@@ -275,10 +275,23 @@ button.ghost {
   font-size: 1.05rem;
 }
 
+/* Suppress iOS long-press text selection while a hold-button gesture is active */
+body.is-holding-press,
+body.is-holding-press * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
 .hold-button {
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .hold-button-fill {
@@ -294,6 +307,8 @@ button.ghost {
 .hold-button-label {
   position: relative;
   z-index: 1;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* Board — wooden frame, felt well, carved tiles */

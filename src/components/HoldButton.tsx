@@ -1,6 +1,16 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 
 const DEFAULT_HOLD_MS = 750
+const HOLD_PRESS_CLASS = 'is-holding-press'
+
+function clearTextSelection() {
+  window.getSelection()?.removeAllRanges()
+}
+
+function releaseDocHoldGuard() {
+  document.body.classList.remove(HOLD_PRESS_CLASS)
+  clearTextSelection()
+}
 
 interface HoldButtonProps {
   onConfirm: () => void
@@ -44,6 +54,11 @@ export function HoldButton({
     clearAnimation()
   }
 
+  const endGesture = () => {
+    cancelHold()
+    releaseDocHoldGuard()
+  }
+
   const tick = (now: number) => {
     const start = startRef.current
     if (start == null) return
@@ -54,6 +69,8 @@ export function HoldButton({
       if (!confirmedRef.current) {
         confirmedRef.current = true
         onConfirmRef.current()
+        // iOS may still select after React paints; clear once the frame commits.
+        requestAnimationFrame(clearTextSelection)
       }
       return
     }
@@ -66,12 +83,14 @@ export function HoldButton({
     startRef.current = performance.now()
     setHolding(true)
     setProgress(0)
+    document.body.classList.add(HOLD_PRESS_CLASS)
     rafRef.current = requestAnimationFrame(tick)
   }
 
   useEffect(() => {
     return () => {
       if (rafRef.current != null) cancelAnimationFrame(rafRef.current)
+      releaseDocHoldGuard()
     }
   }, [])
 
@@ -106,10 +125,11 @@ export function HoldButton({
           cancelHold()
         }
       }}
-      onPointerUp={cancelHold}
-      onPointerCancel={cancelHold}
-      onLostPointerCapture={cancelHold}
-      onBlur={cancelHold}
+      onPointerUp={endGesture}
+      onPointerCancel={endGesture}
+      onLostPointerCapture={endGesture}
+      onBlur={endGesture}
+      onContextMenu={(e) => e.preventDefault()}
       onKeyDown={(e) => {
         if (e.key !== ' ' && e.key !== 'Enter') return
         if (e.repeat) return
@@ -119,7 +139,7 @@ export function HoldButton({
       onKeyUp={(e) => {
         if (e.key !== ' ' && e.key !== 'Enter') return
         e.preventDefault()
-        cancelHold()
+        endGesture()
       }}
       onClick={(e) => e.preventDefault()}
     >
