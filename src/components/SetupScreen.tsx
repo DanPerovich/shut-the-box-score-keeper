@@ -47,6 +47,11 @@ export function SetupScreen() {
   const [settings, setSettings] = useState<GameSettings>(
     () => loadLastSetup()?.settings ?? { ...DEFAULT_SETTINGS },
   )
+  const [roundsText, setRoundsText] = useState(() =>
+    String(
+      loadLastSetup()?.settings?.rounds ?? DEFAULT_SETTINGS.rounds,
+    ),
+  )
   const [refreshing, setRefreshing] = useState(false)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
@@ -58,10 +63,12 @@ export function SetupScreen() {
       players.length >= 2 &&
       players.length <= 8 &&
       players.every((p) => p.name.trim().length > 0) &&
+      roundsText !== '' &&
       settings.rounds >= 1 &&
+      settings.rounds <= 20 &&
       settings.maxTile >= 6 &&
       settings.maxTile <= 12,
-    [players, settings],
+    [players, settings, roundsText],
   )
 
   const updateSetting = <K extends keyof GameSettings>(
@@ -235,10 +242,28 @@ export function SetupScreen() {
             type="number"
             min={1}
             max={20}
-            value={settings.rounds}
-            onChange={(e) =>
-              updateSetting('rounds', Math.max(1, Number(e.target.value) || 1))
-            }
+            inputMode="numeric"
+            value={roundsText}
+            onChange={(e) => {
+              const raw = e.target.value
+              setRoundsText(raw)
+              if (raw === '') return
+              const n = Number(raw)
+              if (!Number.isFinite(n)) return
+              updateSetting(
+                'rounds',
+                Math.min(20, Math.max(1, Math.floor(n))),
+              )
+            }}
+            onBlur={() => {
+              const n = Number(roundsText)
+              const clamped =
+                roundsText !== '' && Number.isFinite(n)
+                  ? Math.min(20, Math.max(1, Math.floor(n)))
+                  : 1
+              updateSetting('rounds', clamped)
+              setRoundsText(String(clamped))
+            }}
           />
         </div>
 

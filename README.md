@@ -9,7 +9,7 @@ Offline-first PWA for keeping score in Shut the Box with real dice. Tap tiles on
 - Fixed rounds (default 1); lower total wins
 - Skip a player mid-round (they must still play before the round ends)
 - Remove a player mid-game
-- Undo / reset board; one-tap end turn; edit scores later
+- Undo / reset board; one-tap end turn; edit or reassign scores later
 - Optional dice-total validation (+ optional 1-die-when-sum≤6 rule)
 - Themes (walnut, slate, carnival, nautical) with random default
 - Autosave in-progress game; full offline after first load

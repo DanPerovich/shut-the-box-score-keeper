@@ -26,6 +26,7 @@ import {
   pickTheme,
   rebuildQueue,
   recalculateOrdersAfterEdit,
+  reassignRoundScore,
   rollFromDice,
   scoreFromBoard,
   selectionIsValid,
@@ -52,6 +53,11 @@ interface GameContextValue {
   clearSelection: () => void
   removePlayer: (playerId: string) => void
   editScore: (roundIndex: number, playerId: string, score: number) => void
+  reassignScore: (
+    roundIndex: number,
+    fromPlayerId: string,
+    toPlayerId: string,
+  ) => void
   currentScore: number
 }
 
@@ -457,6 +463,92 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const reassignScore = useCallback(
+    (roundIndex: number, fromPlayerId: string, toPlayerId: string) => {
+      setState((prev) => {
+        if (roundIndex < 0 || roundIndex >= prev.scores.length) return prev
+        const swapped = reassignRoundScore(
+          prev.scores[roundIndex],
+          fromPlayerId,
+          toPlayerId,
+        )
+        if (!swapped) return prev
+
+        const scores = prev.scores.map((row, i) =>
+          i === roundIndex ? swapped : row,
+        )
+        const playerIds = prev.players.map((p) => p.id)
+        let orders = recalculateOrdersAfterEdit(
+          scores,
+          prev.orders,
+          roundIndex,
+          playerIds,
+        )
+
+        if (!prev.turn || prev.screen !== 'play') {
+          return { ...prev, scores, orders }
+        }
+
+        const currentRound = prev.turn.roundIndex
+        if (currentRound < roundIndex) {
+          return { ...prev, scores, orders }
+        }
+
+        const order = orders[currentRound]
+        const previousCurrent = prev.turn.queue[0]
+        const queue = rebuildQueue(
+          order,
+          scores[currentRound],
+          previousCurrent,
+        )
+
+        if (queue.length === 0) {
+          const nextRound = currentRound + 1
+          if (nextRound >= prev.settings.rounds) {
+            return {
+              ...prev,
+              scores,
+              orders,
+              turn: null,
+              screen: 'results',
+            }
+          }
+          const priorOrder = orders[currentRound]
+          const starter = nextRoundStarter(scores[currentRound], priorOrder)
+          const newOrder = orderStartingWith(priorOrder, starter)
+          const nextOrders = orders.map((o, i) =>
+            i === nextRound ? newOrder : o,
+          )
+          return {
+            ...prev,
+            scores,
+            orders: nextOrders,
+            turn: startRoundTurn(nextRound, newOrder, prev.settings.maxTile),
+          }
+        }
+
+        const resetBoard = queue[0] !== previousCurrent
+
+        return {
+          ...prev,
+          scores,
+          orders,
+          turn: {
+            ...prev.turn,
+            queue,
+            board: resetBoard
+              ? createEmptyBoard(prev.settings.maxTile)
+              : prev.turn.board,
+            shutHistory: resetBoard ? [] : prev.turn.shutHistory,
+            selectedTiles: resetBoard ? [] : prev.turn.selectedTiles,
+            dice: resetBoard ? [] : prev.turn.dice,
+          },
+        }
+      })
+    },
+    [],
+  )
+
   const currentScore = state.turn ? scoreFromBoard(state.turn.board) : 0
 
   const value = useMemo(
@@ -478,6 +570,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       clearSelection,
       removePlayer,
       editScore,
+      reassignScore,
       currentScore,
     }),
     [
@@ -498,6 +591,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       clearSelection,
       removePlayer,
       editScore,
+      reassignScore,
       currentScore,
     ],
   )

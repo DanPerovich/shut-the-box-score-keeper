@@ -4,6 +4,7 @@ import {
   nextGamePlayerOrder,
   nextRoundStarter,
   orderStartingWith,
+  reassignRoundScore,
   rollFromDice,
   scoreFromBoard,
   selectionIsValid,
@@ -107,5 +108,24 @@ describe('diceCount', () => {
     const board = [true, true, false, false, false, false] // open 1+2=3
     expect(diceCount(board, true)).toBe(1)
     expect(diceCount(board, false)).toBe(2)
+  })
+})
+
+describe('reassignRoundScore', () => {
+  it('moves a score onto a pending player and clears the source', () => {
+    expect(
+      reassignRoundScore({ a: 15, b: null, c: 4 }, 'a', 'b'),
+    ).toEqual({ a: null, b: 15, c: 4 })
+  })
+
+  it('swaps two recorded scores', () => {
+    expect(
+      reassignRoundScore({ a: 15, b: 3, c: 4 }, 'a', 'b'),
+    ).toEqual({ a: 3, b: 15, c: 4 })
+  })
+
+  it('rejects missing scores or same player', () => {
+    expect(reassignRoundScore({ a: null, b: 3 }, 'a', 'b')).toBeNull()
+    expect(reassignRoundScore({ a: 15, b: 3 }, 'a', 'a')).toBeNull()
   })
 })

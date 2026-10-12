@@ -18,6 +18,7 @@ export function PlayScreen() {
     clearSelection,
     removePlayer,
     editScore,
+    reassignScore,
     currentScore,
     newGame,
   } = useGame()
@@ -71,6 +72,7 @@ export function PlayScreen() {
         state={state}
         currentPlayerId={currentId}
         onEditScore={editScore}
+        onReassignScore={reassignScore}
         onRemovePlayer={removePlayer}
       />
 

@@ -205,3 +205,25 @@ export function rebuildQueue(
   const idx = pending.indexOf(preferredCurrent)
   return [...pending.slice(idx), ...pending.slice(0, idx)]
 }
+
+/**
+ * Swap (or move) a recorded score between two players in one round.
+ * `fromPlayerId` must already have a numeric score. If `toPlayerId` is still
+ * pending (null), this clears the source so they can play again — the usual
+ * fix when someone accidentally played out of order.
+ */
+export function reassignRoundScore(
+  roundScores: Record<string, number | null>,
+  fromPlayerId: string,
+  toPlayerId: string,
+): Record<string, number | null> | null {
+  if (fromPlayerId === toPlayerId) return null
+  if (!(fromPlayerId in roundScores) || !(toPlayerId in roundScores)) return null
+  const fromScore = roundScores[fromPlayerId]
+  if (typeof fromScore !== 'number') return null
+  return {
+    ...roundScores,
+    [fromPlayerId]: roundScores[toPlayerId] ?? null,
+    [toPlayerId]: fromScore,
+  }
+}
