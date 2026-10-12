@@ -658,8 +658,8 @@ button.ghost {
 
 .dice-faces {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.4rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
 }
 
 .die-face-btn {
